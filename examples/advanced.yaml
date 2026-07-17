@@ -1,0 +1,23 @@
+client:
+  base: https://httpbin.org
+  headers:
+    Accept: application/json
+
+steps:
+  - name: health
+    method: GET
+    path: /get
+    status: 200
+
+  - name: create
+    method: POST
+    path: /post
+    body: {name: Alice, role: admin}
+    status: 200
+    extract: .json.name
+
+  - name: verify
+    method: GET
+    path: /anything/{create}
+    status: 200
+    extract: .url

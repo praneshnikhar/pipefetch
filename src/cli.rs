@@ -52,6 +52,8 @@ pub enum Command {
         #[command(subcommand)]
         action: AuthAction,
     },
+    /// Run a YAML collection file
+    Run { path: String },
 }
 
 #[derive(clap::Subcommand)]
@@ -78,7 +80,7 @@ impl Cli {
             Command::Put { .. } => reqwest::Method::PUT,
             Command::Patch { .. } => reqwest::Method::PATCH,
             Command::Delete { .. } => reqwest::Method::DELETE,
-            Command::Auth { .. } => unreachable!(),
+            Command::Auth { .. } | Command::Run { .. } => unreachable!(),
         })
     }
 
@@ -89,7 +91,7 @@ impl Cli {
             Command::Put { url, .. } => url,
             Command::Patch { url, .. } => url,
             Command::Delete { url } => url,
-            Command::Auth { .. } => "",
+            Command::Auth { .. } | Command::Run { .. } => "",
         }
     }
 

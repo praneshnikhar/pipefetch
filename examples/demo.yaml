@@ -1,0 +1,11 @@
+steps:
+  - name: get_uuid
+    method: GET
+    path: https://httpbin.org/uuid
+    extract: .uuid
+
+  - name: verify_uuid
+    method: GET
+    path: https://httpbin.org/anything/{get_uuid}
+    status: 200
+    extract: .url

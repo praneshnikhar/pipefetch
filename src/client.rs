@@ -18,11 +18,11 @@ impl HttpClient {
         method: reqwest::Method,
         url: &str,
         body: Option<&str>,
-        auth_header: Option<(&str, &str)>,
+        headers: &[(String, String)],
     ) -> anyhow::Result<reqwest::Response> {
         let mut req = self.inner.request(method, url);
-        if let Some((name, value)) = auth_header {
-            req = req.header(name, value);
+        for (name, value) in headers {
+            req = req.header(name.as_str(), value.as_str());
         }
         if let Some(body) = body {
             req = req

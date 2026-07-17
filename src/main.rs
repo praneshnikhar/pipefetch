@@ -1,5 +1,6 @@
 mod cli;
 mod client;
+mod collection;
 mod config;
 mod output;
 mod resolver;
@@ -11,8 +12,10 @@ use clap::Parser;
 async fn main() -> anyhow::Result<()> {
     let cli = cli::Cli::parse();
 
-    if let cli::Command::Auth { action } = &cli.command {
-        return handle_auth(action);
+    match &cli.command {
+        cli::Command::Auth { action } => return handle_auth(action),
+        cli::Command::Run { path } => return handle_run(path).await,
+        _ => {}
     }
 
     let cfg = config::Config::load();
@@ -44,9 +47,7 @@ async fn main() -> anyhow::Result<()> {
 
     let final_url = if !url.contains("://") && !url.starts_with("//") {
         if let Some(base) = &cfg.default_base {
-            let base = base.trim_end_matches('/');
-            let path = url.trim_start_matches('/');
-            format!("{base}/{path}")
+            format!("{}/{}", base.trim_end_matches('/'), url.trim_start_matches('/'))
         } else {
             url
         }
@@ -54,8 +55,10 @@ async fn main() -> anyhow::Result<()> {
         url
     };
 
-    let auth_header = cli.auth.as_ref().and_then(|name| {
-        cfg.find_auth(name).map(|profile| {
+    let mut headers: Vec<(String, String)> = Vec::new();
+
+    if let Some(ref name) = cli.auth {
+        if let Some(profile) = cfg.find_auth(name) {
             let header_value = match profile.auth_type.as_str() {
                 "bearer" => format!("Bearer {}", profile.value),
                 "basic" => {
@@ -64,13 +67,13 @@ async fn main() -> anyhow::Result<()> {
                 }
                 _ => profile.value.clone(),
             };
-            ("Authorization".to_string(), header_value)
-        })
-    });
+            headers.push(("Authorization".to_string(), header_value));
+        }
+    }
 
     if cli.dry_run {
         println!("{} {}", cli.method()?.as_str().to_uppercase(), final_url);
-        if let Some((name, value)) = &auth_header {
+        for (name, value) in &headers {
             println!("{name}: {value}");
         }
         if let Some(b) = &body {
@@ -80,8 +83,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let method = cli.method()?;
-    let ah = auth_header.as_ref().map(|(n, v)| (n.as_str(), v.as_str()));
-    let response = http.request(method, &final_url, body.as_deref(), ah).await?;
+    let response = http.request(method, &final_url, body.as_deref(), &headers).await?;
     let success = response.status().is_success();
 
     if let Some(extract_path) = cli.extract() {
@@ -104,6 +106,33 @@ async fn main() -> anyhow::Result<()> {
     }
 
     if !success {
+        std::process::exit(1);
+    }
+    Ok(())
+}
+
+async fn handle_run(path: &str) -> anyhow::Result<()> {
+    let cfg = config::Config::load();
+    let http = client::HttpClient::new()?;
+    let results = collection::run_collection(path, &http, &cfg).await?;
+
+    let mut all_ok = true;
+    for r in &results {
+        let icon = if r.success { "OK" } else { "FAIL" };
+
+        let value_str = r.value.as_ref().map(|v| format!(" → {v}")).unwrap_or_default();
+        println!("[{icon}] {status} {name}{value}",
+            icon = icon,
+            status = r.status,
+            name = r.name,
+            value = value_str,
+        );
+        if !r.success {
+            all_ok = false;
+        }
+    }
+
+    if !all_ok {
         std::process::exit(1);
     }
     Ok(())
