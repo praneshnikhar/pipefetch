@@ -1,0 +1,92 @@
+.\" Man page for pipefetch
+.TH PIPEFETCH 1 "2026-07-18" "0.1.0" "User Commands"
+.SH NAME
+pipefetch \- HTTP client for shell pipelines
+.SH SYNOPSIS
+.B pipefetch
+[\fI\,OPTIONS\/\fR] \fI\,COMMAND\/\fR [\fI\,ARGS\/\fR]...
+.SH DESCRIPTION
+pipefetch is an HTTP client designed for shell pipelines.
+It supports GET, POST, PUT, PATCH, DELETE requests, JSON extraction,
+pipeline chaining, environment variable interpolation, auth profiles,
+and YAML collection files.
+.SH COMMANDS
+.TP
+.B get \fI\,URL\/\fR
+Send a GET request.
+.TP
+.B post \fI\,URL\/\fR \fI\,BODY\/\fR
+Send a POST request with JSON body.
+.TP
+.B put \fI\,URL\/\fR \fI\,BODY\/\fR
+Send a PUT request with JSON body.
+.TP
+.B patch \fI\,URL\/\fR \fI\,BODY\/\fR
+Send a PATCH request with JSON body.
+.TP
+.B delete \fI\,URL\/\fR
+Send a DELETE request.
+.TP
+.B auth add \fI\,NAME\/\fR --auth-type \fI\,TYPE\/\fR --value \fI\,VALUE\/\fR
+Add an auth profile.
+.TP
+.B auth list
+List auth profiles.
+.TP
+.B auth remove \fI\,NAME\/\fR
+Remove an auth profile.
+.TP
+.B run \fI\,PATH\/\fR
+Run a YAML collection file.
+.SH OPTIONS
+.TP
+.B \--status
+Print only the status line.
+.TP
+.B \--headers
+Print only response headers.
+.TP
+.B \--raw
+Print raw response body.
+.TP
+.B \--json
+Machine-readable JSON output.
+.TP
+.B \--extract \fI\,PATH\/\fR
+Extract a JSON value using dot notation (e.g. .id, .users[0].name).
+.TP
+.B \--auth \fI\,NAME\/\fR
+Use the specified auth profile.
+.TP
+.B \--dry-run
+Print what would be sent without making the request.
+.SH EXAMPLES
+.TP
+Simple GET request:
+pipefetch get https://httpbin.org/get
+.TP
+POST with body:
+pipefetch post https://httpbin.org/post '{"name":"Alice"}'
+.TP
+Extract a field:
+pipefetch get /users --extract .name
+.TP
+Chain requests via pipe:
+pipefetch get /repo --extract .owner.login | pipefetch get "/users/{.}"
+.TP
+Use env vars:
+pipefetch get "https://api.example.com/${TOKEN}/users"
+.TP
+Run a collection:
+pipefetch run examples/demo.yaml
+.SH FILES
+.TP
+.I ~/.config/pipefetch/config.yaml
+Configuration file (Linux).
+.TP
+.I ~/Library/Application Support/pipefetch/config.yaml
+Configuration file (macOS).
+.SH REPORTING BUGS
+https://github.com/praneshnikhar/pipefetch/issues
+.SH LICENSE
+GPL-3.0
