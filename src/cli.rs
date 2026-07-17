@@ -21,6 +21,10 @@ pub struct Cli {
     /// Machine-readable JSON output
     #[arg(long, global = true)]
     pub json: bool,
+
+    /// Extract a value from the JSON response using dot notation (e.g. .id, .users[0].name)
+    #[arg(long, global = true)]
+    pub extract: Option<String>,
 }
 
 #[derive(clap::Subcommand)]
@@ -65,6 +69,10 @@ impl Cli {
             Command::Patch { body, .. } => Some(body.as_str()),
             _ => None,
         }
+    }
+
+    pub fn extract(&self) -> Option<&str> {
+        self.extract.as_deref()
     }
 
     pub fn output_mode(&self) -> crate::output::OutputMode {
