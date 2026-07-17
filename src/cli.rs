@@ -25,6 +25,14 @@ pub struct Cli {
     /// Extract a value from the JSON response using dot notation (e.g. .id, .users[0].name)
     #[arg(long, global = true)]
     pub extract: Option<String>,
+
+    /// Name of an auth profile to use (stored in ~/.config/pipefetch/config.yaml)
+    #[arg(long, global = true)]
+    pub auth: Option<String>,
+
+    /// Print what would be sent without making the request
+    #[arg(long, global = true)]
+    pub dry_run: bool,
 }
 
 #[derive(clap::Subcommand)]
@@ -39,6 +47,27 @@ pub enum Command {
     Patch { url: String, body: String },
     /// Send a DELETE request
     Delete { url: String },
+    /// Manage auth profiles
+    Auth {
+        #[command(subcommand)]
+        action: AuthAction,
+    },
+}
+
+#[derive(clap::Subcommand)]
+pub enum AuthAction {
+    /// Add or update an auth profile
+    Add {
+        name: String,
+        #[arg(long)]
+        auth_type: String,
+        #[arg(long)]
+        value: String,
+    },
+    /// List all auth profiles
+    List,
+    /// Remove an auth profile
+    Remove { name: String },
 }
 
 impl Cli {
@@ -49,6 +78,7 @@ impl Cli {
             Command::Put { .. } => reqwest::Method::PUT,
             Command::Patch { .. } => reqwest::Method::PATCH,
             Command::Delete { .. } => reqwest::Method::DELETE,
+            Command::Auth { .. } => unreachable!(),
         })
     }
 
@@ -59,6 +89,7 @@ impl Cli {
             Command::Put { url, .. } => url,
             Command::Patch { url, .. } => url,
             Command::Delete { url } => url,
+            Command::Auth { .. } => "",
         }
     }
 

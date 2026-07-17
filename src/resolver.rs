@@ -78,6 +78,32 @@ pub fn resolve_template(template: &str, context: Option<&Value>) -> String {
     result
 }
 
+pub fn resolve_env(s: &str) -> String {
+    let mut result = String::new();
+    let chars: Vec<char> = s.chars().collect();
+    let mut i = 0;
+    while i < chars.len() {
+        if chars[i] == '$' && i + 1 < chars.len() && chars[i + 1] == '{' {
+            i += 2;
+            let mut var_name = String::new();
+            while i < chars.len() && chars[i] != '}' {
+                var_name.push(chars[i]);
+                i += 1;
+            }
+            if i < chars.len() {
+                i += 1;
+            }
+            let value = std::env::var(&var_name)
+                .unwrap_or_else(|_| format!("${{{}}}", var_name));
+            result.push_str(&value);
+        } else {
+            result.push(chars[i]);
+            i += 1;
+        }
+    }
+    result
+}
+
 pub fn extract(value: &Value, path: &str) -> Option<String> {
     resolve_path(value, path).map(|v| match v {
         Value::String(s) => s.clone(),
@@ -186,6 +212,30 @@ mod tests {
     fn test_extract_object() {
         let v = json!({"user": {"name": "Alice"}});
         assert_eq!(extract(&v, ".user").unwrap(), r#"{"name":"Alice"}"#);
+    }
+
+    #[test]
+    fn test_env_simple() {
+        std::env::set_var("PIPEFETCH_TEST", "hello");
+        assert_eq!(resolve_env("/${PIPEFETCH_TEST}"), "/hello");
+    }
+
+    #[test]
+    fn test_env_missing() {
+        let result = resolve_env("/${NONEXISTENT_VAR_12345}");
+        assert!(result.contains("NONEXISTENT_VAR_12345"));
+    }
+
+    #[test]
+    fn test_env_no_interp() {
+        assert_eq!(resolve_env("/plain/url"), "/plain/url");
+    }
+
+    #[test]
+    fn test_env_multiple() {
+        std::env::set_var("A", "foo");
+        std::env::set_var("B", "bar");
+        assert_eq!(resolve_env("/${A}/${B}"), "/foo/bar");
     }
 
     #[test]
