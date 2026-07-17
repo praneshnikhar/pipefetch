@@ -93,8 +93,7 @@ pub fn resolve_env(s: &str) -> String {
             if i < chars.len() {
                 i += 1;
             }
-            let value = std::env::var(&var_name)
-                .unwrap_or_else(|_| format!("${{{}}}", var_name));
+            let value = std::env::var(&var_name).unwrap_or_else(|_| format!("${{{}}}", var_name));
             result.push_str(&value);
         } else {
             result.push(chars[i]);
@@ -175,7 +174,10 @@ mod tests {
     fn test_template_simple() {
         let ctx = json!({"id": 42, "name": "Alice"});
         assert_eq!(resolve_template("/users/{.id}", Some(&ctx)), "/users/42");
-        assert_eq!(resolve_template("/users/{.name}", Some(&ctx)), "/users/Alice");
+        assert_eq!(
+            resolve_template("/users/{.name}", Some(&ctx)),
+            "/users/Alice"
+        );
     }
 
     #[test]

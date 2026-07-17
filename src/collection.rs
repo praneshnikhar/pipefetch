@@ -1,6 +1,6 @@
-use std::collections::HashMap;
 use anyhow::Context;
 use serde::Deserialize;
+use std::collections::HashMap;
 
 #[derive(Deserialize)]
 pub struct Collection {
@@ -50,18 +50,18 @@ pub async fn run_collection(
     http: &crate::client::HttpClient,
     cfg: &crate::config::Config,
 ) -> anyhow::Result<Vec<StepResult>> {
-    let content = std::fs::read_to_string(path)
-        .with_context(|| format!("Failed to read {path}"))?;
-    let collection: Collection = serde_yaml::from_str(&content)
-        .with_context(|| format!("Failed to parse {path}"))?;
+    let content =
+        std::fs::read_to_string(path).with_context(|| format!("Failed to read {path}"))?;
+    let collection: Collection =
+        serde_yaml::from_str(&content).with_context(|| format!("Failed to parse {path}"))?;
 
-    let base = collection.client.as_ref()
+    let base = collection
+        .client
+        .as_ref()
         .and_then(|c| c.base.as_deref())
         .or(cfg.default_base.as_deref());
-    let client_auth = collection.client.as_ref()
-        .and_then(|c| c.auth.as_deref());
-    let client_headers = collection.client.as_ref()
-        .and_then(|c| c.headers.as_ref());
+    let client_auth = collection.client.as_ref().and_then(|c| c.auth.as_deref());
+    let client_headers = collection.client.as_ref().and_then(|c| c.headers.as_ref());
 
     let mut step_context: HashMap<String, serde_json::Value> = HashMap::new();
     let mut results = Vec::new();
@@ -81,7 +81,11 @@ pub async fn run_collection(
 
         let url = if !resolved_path.contains("://") {
             if let Some(base) = base {
-                format!("{}/{}", base.trim_end_matches('/'), resolved_path.trim_start_matches('/'))
+                format!(
+                    "{}/{}",
+                    base.trim_end_matches('/'),
+                    resolved_path.trim_start_matches('/')
+                )
             } else {
                 resolved_path
             }
@@ -103,7 +107,10 @@ pub async fn run_collection(
         }
         if let Some(ref h) = step.headers {
             for (k, v) in h {
-                let val = crate::resolver::resolve_template(&crate::resolver::resolve_env(v), ctx_val.as_ref());
+                let val = crate::resolver::resolve_template(
+                    &crate::resolver::resolve_env(v),
+                    ctx_val.as_ref(),
+                );
                 headers.push((k.clone(), val));
             }
         }
@@ -123,10 +130,15 @@ pub async fn run_collection(
             }
         }
 
-        let method: reqwest::Method = step.method.to_uppercase().parse()
+        let method: reqwest::Method = step
+            .method
+            .to_uppercase()
+            .parse()
             .unwrap_or(reqwest::Method::GET);
 
-        let response = http.request(method, &url, body_str.as_deref(), &headers).await?;
+        let response = http
+            .request(method, &url, body_str.as_deref(), &headers)
+            .await?;
         let status = response.status().as_u16();
         let body_text = response.text().await?;
 
@@ -140,7 +152,8 @@ pub async fn run_collection(
         }
 
         let value = step.extract.as_ref().and_then(|extract_path| {
-            serde_json::from_str::<serde_json::Value>(&body_text).ok()
+            serde_json::from_str::<serde_json::Value>(&body_text)
+                .ok()
                 .and_then(|json| crate::resolver::extract(&json, extract_path))
         });
 

@@ -14,7 +14,10 @@ pub async fn print_response(response: reqwest::Response, mode: OutputMode) -> an
     let reason = status.canonical_reason().unwrap_or("Unknown");
     let status_line = format!("{} {}", status.as_u16(), reason);
     let headers = response.headers().clone();
-    let body = response.text().await.context("Failed to read response body")?;
+    let body = response
+        .text()
+        .await
+        .context("Failed to read response body")?;
 
     match mode {
         OutputMode::Status => {

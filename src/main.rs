@@ -5,8 +5,8 @@ mod config;
 mod output;
 mod resolver;
 
-use std::io::{IsTerminal, Read};
 use clap::Parser;
+use std::io::{IsTerminal, Read};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -37,17 +37,18 @@ async fn main() -> anyhow::Result<()> {
     };
 
     let raw_url = cli.url();
-    let url = resolver::resolve_template(
-        &resolver::resolve_env(raw_url),
-        context.as_ref(),
-    );
-    let body = cli.body().map(|b| {
-        resolver::resolve_template(&resolver::resolve_env(b), context.as_ref())
-    });
+    let url = resolver::resolve_template(&resolver::resolve_env(raw_url), context.as_ref());
+    let body = cli
+        .body()
+        .map(|b| resolver::resolve_template(&resolver::resolve_env(b), context.as_ref()));
 
     let final_url = if !url.contains("://") && !url.starts_with("//") {
         if let Some(base) = &cfg.default_base {
-            format!("{}/{}", base.trim_end_matches('/'), url.trim_start_matches('/'))
+            format!(
+                "{}/{}",
+                base.trim_end_matches('/'),
+                url.trim_start_matches('/')
+            )
         } else {
             url
         }
@@ -83,7 +84,9 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let method = cli.method()?;
-    let response = http.request(method, &final_url, body.as_deref(), &headers).await?;
+    let response = http
+        .request(method, &final_url, body.as_deref(), &headers)
+        .await?;
     let success = response.status().is_success();
 
     if let Some(extract_path) = cli.extract() {
@@ -120,8 +123,13 @@ async fn handle_run(path: &str) -> anyhow::Result<()> {
     for r in &results {
         let icon = if r.success { "OK" } else { "FAIL" };
 
-        let value_str = r.value.as_ref().map(|v| format!(" → {v}")).unwrap_or_default();
-        println!("[{icon}] {status} {name}{value}",
+        let value_str = r
+            .value
+            .as_ref()
+            .map(|v| format!(" → {v}"))
+            .unwrap_or_default();
+        println!(
+            "[{icon}] {status} {name}{value}",
             icon = icon,
             status = r.status,
             name = r.name,
@@ -141,7 +149,11 @@ async fn handle_run(path: &str) -> anyhow::Result<()> {
 fn handle_auth(action: &cli::AuthAction) -> anyhow::Result<()> {
     let mut cfg = config::Config::load();
     match action {
-        cli::AuthAction::Add { name, auth_type, value } => {
+        cli::AuthAction::Add {
+            name,
+            auth_type,
+            value,
+        } => {
             cfg.add_auth(name, auth_type, value);
             cfg.save()?;
             println!("Auth profile '{name}' saved");
@@ -152,7 +164,12 @@ fn handle_auth(action: &cli::AuthAction) -> anyhow::Result<()> {
             } else {
                 println!("Auth profiles:");
                 for a in &cfg.auth {
-                    println!("  {} (type: {}, value: {})", a.name, a.auth_type, "*".repeat(a.value.len().min(16)));
+                    println!(
+                        "  {} (type: {}, value: {})",
+                        a.name,
+                        a.auth_type,
+                        "*".repeat(a.value.len().min(16))
+                    );
                 }
             }
         }

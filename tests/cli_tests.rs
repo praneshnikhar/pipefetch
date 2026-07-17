@@ -59,7 +59,12 @@ fn test_dry_run_shows_method_and_url() {
 
 #[test]
 fn test_dry_run_post_shows_body() {
-    let output = pipefetch(&["post", "https://example.com/data", r#"{"key":"val"}"#, "--dry-run"]);
+    let output = pipefetch(&[
+        "post",
+        "https://example.com/data",
+        r#"{"key":"val"}"#,
+        "--dry-run",
+    ]);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("POST"));
     assert!(stdout.contains("key"));
@@ -69,7 +74,15 @@ fn test_dry_run_post_shows_body() {
 
 #[test]
 fn test_auth_add_list_remove() {
-    let add = pipefetch(&["auth", "add", "test-profile", "--auth-type", "bearer", "--value", "test-token"]);
+    let add = pipefetch(&[
+        "auth",
+        "add",
+        "test-profile",
+        "--auth-type",
+        "bearer",
+        "--value",
+        "test-token",
+    ]);
     assert!(add.status.success());
 
     let list = pipefetch(&["auth", "list"]);
